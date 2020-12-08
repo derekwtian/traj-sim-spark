@@ -13,5 +13,6 @@ libraryDependencies ++= Seq(
 
 resolvers ++= Seq(
   "geosolutions" at "http://maven.geo-solutions.it/",
-  "osgeo" at "http://download.osgeo.org/webdav/geotools/"
+  "osgeo" at "https://repo.osgeo.org/repository/release",
+  "osgeo-snapshots" at "https://repo.osgeo.org/repository/snapshot"
 )
