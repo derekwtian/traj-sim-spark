@@ -11,6 +11,9 @@ case class Trajectory(id: Int, segments: Array[Point]) {
 }
 
 object Trajectory {
+  var EPSILON = 0.0001
+  var DELTA = 3
+
   def RDPCompress(traj: Array[Point], epsilon: Double): Array[Point] = {
     val baseLineSeg = LineSegment(traj.head, traj.last)
     val dmax = traj.map(x => x.minDist(baseLineSeg)).zipWithIndex.maxBy(_._1)
@@ -68,4 +71,111 @@ object Trajectory {
     }
     ca.last.last
   }
+
+  def dtwDistance(x: Array[LineSegment], y: Array[LineSegment]): Double = {
+    val points1 = x.map(item => item.start) :+ x.last.end
+    val points2 = y.map(item => item.start) :+ y.last.end
+
+    val cost = Array.fill[Double](points1.length, points2.length)(Double.MaxValue)
+
+    for (i <- points1.indices) {
+      for (j <- points2.indices) {
+        cost(i)(j) = points1(i).minDist(points2(j))
+        val left = if (i > 0) cost(i - 1)(j) else Double.MaxValue
+        val up = if (j > 0) cost(i)(j - 1) else Double.MaxValue
+        val diag = if (i > 0 && j > 0) cost(i - 1)(j - 1) else Double.MaxValue
+        val last = math.min(math.min(left, up), diag)
+        if (i > 0 || j > 0) {
+          cost(i)(j) = math.max(cost(i)(j), last)
+        }
+      }
+    }
+
+    cost.last.last
+  }
+
+  private def subCost(shape1: Point, shape2: Point): Double = {
+    if (shape1.minDist(shape2) <= EPSILON) {
+      0
+    } else {
+      1
+    }
+  }
+
+  def EDRDistance(x: Array[LineSegment], y: Array[LineSegment], threshold: Double = Double.MaxValue): Double = {
+    val points1 = x.map(item => item.start) :+ x.last.end
+    val points2 = y.map(item => item.start) :+ y.last.end
+
+    val cost = Array.ofDim[Double](points1.length, points2.length)
+
+    for (i <- points1.indices) {
+      var minDist = Double.MaxValue
+      for (j <- points2.indices) {
+        if (i > 0 || j > 0) {
+          val left = if (i > 0) cost(i - 1)(j) + 1 else Double.MaxValue
+          val up = if (j > 0) cost(i)(j - 1) + 1 else Double.MaxValue
+          val diag = if (i > 0 && j > 0) cost(i - 1)(j - 1) + subCost(points1(i), points2(j)) else Double.MaxValue
+          val last = math.min(math.min(left, up), diag)
+          if (last > threshold) {
+            cost(i)(j) = Double.MaxValue
+          } else {
+            cost(i)(j) = last
+          }
+        } else {
+          cost(i)(j) = subCost(points1(i), points2(j))
+        }
+        minDist = math.min(minDist, cost(i)(j))
+      }
+
+      if (minDist > threshold) {
+        return threshold
+      }
+    }
+
+    cost.last.last
+  }
+
+  private def subCost(shape1: Point, index1: Int, shape2: Point, index2: Int): Double = {
+    if (math.abs(index1 - index2) <= DELTA && shape1.minDist(shape2) <= EPSILON) {
+      0
+    } else {
+      1
+    }
+  }
+
+  def LCSSDistance(x: Array[LineSegment], y: Array[LineSegment], threshold: Double = Double.MaxValue): Double = {
+    val points1 = x.map(item => item.start) :+ x.last.end
+    val points2 = y.map(item => item.start) :+ y.last.end
+
+    val cost = Array.ofDim[Double](points1.length, points2.length)
+
+    for (i <- points1.indices) {
+      var minDist = Double.MaxValue
+      for (j <- points2.indices) {
+        if (i > 0 || j > 0) {
+          val left = if (i > 0) cost(i - 1)(j) + 1 else Double.MaxValue
+          val up = if (j > 0) cost(i)(j - 1) + 1 else Double.MaxValue
+          val diag = if (i > 0 && j > 0) {
+            cost(i - 1)(j - 1) + subCost(points1(i), i, points2(j), j)
+          } else Double.MaxValue
+          val last = math.min(math.min(left, up), diag)
+          if (last > threshold) {
+            cost(i)(j) = Double.MaxValue
+          } else {
+            cost(i)(j) = last
+          }
+        } else {
+          cost(i)(j) = subCost(points1(i), i, points2(j), j)
+        }
+        minDist = math.min(minDist, cost(i)(j))
+      }
+
+      if (minDist > threshold) {
+        return threshold
+      }
+    }
+
+    cost.last.last
+  }
+
 }
