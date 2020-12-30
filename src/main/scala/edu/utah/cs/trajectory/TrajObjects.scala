@@ -86,7 +86,7 @@ object Trajectory {
         val diag = if (i > 0 && j > 0) cost(i - 1)(j - 1) else Double.MaxValue
         val last = math.min(math.min(left, up), diag)
         if (i > 0 || j > 0) {
-          cost(i)(j) = math.max(cost(i)(j), last)
+          cost(i)(j) += last
         }
       }
     }
